@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+const { Pool } = require("pg");
 
 const user = process.env.DB_USER;
 const password = process.env.DB_PASSWORD;
@@ -14,4 +14,4 @@ const pgPool = new Pool({
   database,
 });
 
-module.exports.dbInfo = pgPool;
+module.exports = { pgPool };
