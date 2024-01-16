@@ -9,7 +9,6 @@ const handler = async () => {
   try {
     const poolClient = await pgPool.connect();
     const query = await poolClient.query(sqlQuery);
-    console.log(query);
     await pgPool.end();
   } catch (err) {
     console.log(err);
