@@ -67,7 +67,7 @@ const deleteService = async (serviceId) => {
   await deleteEvents();
   await deleteEventTypes();
   await deleteUsers();
-  await deleteService();
+  return await deleteService();
 };
 
 module.exports = {
