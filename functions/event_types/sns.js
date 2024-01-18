@@ -4,7 +4,6 @@ const {
   PutSubscriptionFilterCommand,
   CreateLogGroupCommand,
 } = require("@aws-sdk/client-cloudwatch-logs");
-const { IAMClient, CreateRoleCommand } = require("@aws-sdk/client-iam");
 
 const config = {
   region: process.env.REGION,
@@ -12,29 +11,8 @@ const config = {
 
 const snsClient = new SNSClient(config);
 const logsClient = new CloudWatchLogsClient(config);
-const iamClient = new IAMClient(config);
 
 const logDestinationLambdaArn = process.env.LOG_DESTINATION_FUNCTION_ARN;
-
-const createRole = async (RoleName, Description) => {
-  const input = {
-    RoleName,
-    AssumeRolePolicyDocument: JSON.stringify({
-      Version: "2012-10-17",
-      Statement: [
-        {
-          Effect: "Allow",
-          Action: "logs:*",
-          Resource: "*",
-        },
-      ],
-    }),
-    Description,
-  };
-  const command = new CreateRoleCommand(input);
-  const response = await iamClient.send(command);
-  return response.Role;
-};
 
 const createSuccessLogGroup = async (
   logGroupName,
@@ -78,22 +56,15 @@ const createFailureLogGroup = async (
   await client.send(commandSubFilter);
 };
 
-const createSNSTopic = async (topicName) => {
-  const successRole = await createRole(
-    "SNSSuccessRole",
-    "Role for SNS success notification"
-  );
-  const failureRole = await createRole(
-    "SNSFailureRole",
-    "Role for SNS failure notification"
-  );
+const createSNSTopic = async (topicName, accountId) => {
+  const successRoleArn = `arn:aws:iam::${accountId}:role/SNSSuccessRole`;
+  const failureRoleArn = `arn:aws:iam::${accountId}:role/SNSFailureRole`;
 
   const input = {
     Name: topicName,
     Attributes: {
-      // Figure out how to set the success and failure iam roles here
-      HTTPSuccessFeedbackRoleArn: successRole.Arn,
-      HTTPFailureFeedbackRoleArn: failureRole.Arn,
+      HTTPSuccessFeedbackRoleArn: successRoleArn,
+      HTTPFailureFeedbackRoleArn: failureRoleArn,
       DeliveryPolicy: JSON.stringify({
         http: {
           healthyRetryPolicy: {
@@ -118,11 +89,11 @@ const createSNSTopic = async (topicName) => {
   return response.TopicArn;
 };
 
-const finalizeSNSTopic = async (serviceId, eventTypeName) => {
+const finalizeSNSTopic = async (serviceId, eventTypeName, accountId) => {
   const topicName = `WebhooksPlug-${serviceId}-${eventTypeName}`;
   const successLogGroupName = `/aws/sns/${topicName}`;
   const failureLogGroupName = `/aws/sns/${topicName}/Failure`;
-  const snsTopic = await createSNSTopic();
+  const snsTopic = await createSNSTopic(topicName, accountId);
 
   await createSuccessLogGroup(
     successLogGroupName,
