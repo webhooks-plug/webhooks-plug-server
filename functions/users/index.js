@@ -18,7 +18,7 @@ const handler = async (event) => {
   try {
     if (userId) {
       switch (httpMethod) {
-        case HTTP.POST:
+        case HTTP.PUT:
           const { name } = body;
 
           const userToUpdate = await getUser(userId);
@@ -95,7 +95,18 @@ const handler = async (event) => {
             data: user.rows,
           });
         case HTTP.GET:
-          const users = await listUsers();
+          const { service_id: serviceId } = body;
+
+          const retreivedService = await getService(serviceId);
+
+          if (retreivedService.rowCount === 0) {
+            return AppResponse({
+              message: "Service ID is invalid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
+          const users = await listUsers(serviceId);
 
           return AppResponse({
             message: "Users retreived successfully",
