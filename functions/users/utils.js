@@ -31,45 +31,50 @@ const getUser = async (userId) => {
   return user;
 };
 
-const listUsers = async () => {
+const listUsers = async (serviceId) => {
   const poolClient = await pgPool.connect();
-  const user = await poolClient.query(queries.LIST_USERS);
+  const user = await poolClient.query(queries.LIST_USERS, [serviceId]);
   await pgPool.end();
   return user;
 };
 
 const deleteUser = async (userId) => {
+  const poolClient = await pgPool.connect();
+
+  const deleteSubscriptions = async () => {
+    const subscriptions = await poolClient.query(queries.DELETE_SUBSCRIPTIONS, [
+      userId,
+    ]);
+    return subscriptions;
+  };
   const deleteEndpoints = async () => {
-    const poolClient = await pgPool.connect();
     const endpoints = await poolClient.query(queries.DELETE_ENDPOINTS, [
       userId,
     ]);
-    await pgPool.end();
     return endpoints;
   };
   const deleteMessages = async () => {
-    const poolClient = await pgPool.connect();
     const messages = await poolClient.query(queries.DELETE_MESSAGES, [userId]);
-    await pgPool.end();
     return messages;
   };
   const deleteEvents = async () => {
-    const poolClient = await pgPool.connect();
     const events = await poolClient.query(queries.DELETE_EVENTS, [userId]);
-    await pgPool.end();
     return events;
   };
   const deleteUser = async () => {
-    const poolClient = await pgPool.connect();
-    const user = await poolClient.query(queries.DELETE_USER, [userId]);
-    await pgPool.end();
-    return user;
+    const users = await poolClient.query(queries.DELETE_USER, [userId]);
+    return users;
   };
 
+  await deleteSubscriptions();
   await deleteEndpoints();
   await deleteMessages();
   await deleteEvents();
-  return await deleteUser();
+
+  const user = await deleteUser();
+  await pgPool.end();
+
+  return user;
 };
 
 module.exports = {
