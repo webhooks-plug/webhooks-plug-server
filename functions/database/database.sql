@@ -83,5 +83,5 @@ create table if not exists messages (
     created_on timestamp not null default now(),
     deleted_on timestamp not null default to_timestamp(0),
     primary key (id),
-    foreign key (user_id) references users(id)
+    foreign key (user_id) references users(id) foreign key (event_id) references events(id)
 );
