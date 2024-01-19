@@ -1,12 +1,18 @@
-const { pgPool } = require("./config");
 const { queries } = require("./queries");
-const { SNSClient, SubscribeEndpointCommand } = require("@aws-sdk/client-sns");
+const { createClient } = require("/opt");
+const { SNSClient, SubscribeCommand } = require("@aws-sdk/client-sns");
 
 const snsClient = new SNSClient({
   region: process.env.REGION,
 });
 
-const isHttps = () => {
+const isValidUUID = (uuid) => {
+  const uuidRegex =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+  return uuidRegex.test(uuid);
+};
+
+const isHttps = (url) => {
   const httpOrHttpsRegex = /^https?:\/\//;
   return httpOrHttpsRegex.test(url);
 };
@@ -23,24 +29,33 @@ const createSNSSubscription = async (url, topicArn) => {
     Protocol: isHttps(url) ? "https" : "http",
     TopicArn: topicArn,
     Endpoint: url,
+    ReturnSubscriptionArn: true,
   };
 
-  const command = new SubscribeEndpointCommand(params);
+  const command = new SubscribeCommand(params);
   const response = await snsClient.send(command);
   return response.SubscriptionArn;
 };
 
 const getEventType = async (eventTypeId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
   const eventType = await poolClient.query(queries.GET_EVENT_TYPE, [
     eventTypeId,
   ]);
-  await pgPool.end();
   return eventType;
 };
 
-const createSubscription = async (userId, url, eventTypeId) => {
-  const poolClient = await pgPool.connect();
+const getEventTypeByName = async (eventTypeName) => {
+  const poolClient = await createClient();
+  const eventType = await poolClient.query(queries.GET_EVENT_TYPE_NAME, [
+    eventTypeName,
+  ]);
+  return eventType;
+};
+
+const createSubscription = async (userId, url, eventType) => {
+  console.log(eventType);
+  const poolClient = await createClient();
 
   const createEndpoint = async () => {
     const endpoint = await poolClient.query(queries.CREATE_ENDPOINT, [
@@ -56,48 +71,41 @@ const createSubscription = async (userId, url, eventTypeId) => {
 
   const endpointId = endpointInfo.id;
 
-  const eventResponse = await getEventType(eventTypeId);
-  const eventInfo = eventResponse.rows[0];
-  const snsTopicArn = eventInfo.topic_arn;
+  const snsTopicArn = eventType.topic_arn;
 
   if (validateUrl(url)) {
     const subscriptionArn = await createSNSSubscription(url, snsTopicArn);
 
     const subscription = await poolClient.query(queries.CREATE_SUBSCRIPTION, [
-      eventTypeId,
+      eventType.id,
       endpointId,
       subscriptionArn,
     ]);
 
-    await pgPool.end();
     return subscription.rows;
   }
-
-  await pgPool.end();
 
   return [];
 };
 
 const getSubscription = async (subscriptionId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
   const subscription = await poolClient.query(queries.GET_SUBSCRIPTION, [
     subscriptionId,
   ]);
-  await pgPool.end();
   return subscription;
 };
 
 const getSubscriptions = async (eventTypeId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
   const subscription = await poolClient.query(queries.GET_SUBSCRIPTIONS, [
     eventTypeId,
   ]);
-  await pgPool.end();
   return subscription;
 };
 
 const deleteSubscription = async (subscriptionId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
 
   const deleteEndpoints = async () => {
     const endpoints = await poolClient.query(queries.DELETE_ENDPOINTS, [
@@ -116,7 +124,6 @@ const deleteSubscription = async (subscriptionId) => {
   await deleteEndpoints();
   const subscription = await deleteSubscription();
 
-  await pgPool.end();
   return subscription;
 };
 
@@ -126,4 +133,6 @@ module.exports = {
   getSubscriptions,
   deleteSubscription,
   createSubscription,
+  getEventTypeByName,
+  isValidUUID,
 };
