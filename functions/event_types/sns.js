@@ -4,6 +4,10 @@ const {
   PutSubscriptionFilterCommand,
   CreateLogGroupCommand,
 } = require("@aws-sdk/client-cloudwatch-logs");
+const {
+  LambdaClient,
+  AddPermissionCommand,
+} = require("@aws-sdk/client-lambda");
 
 const config = {
   region: process.env.REGION,
@@ -11,19 +15,34 @@ const config = {
 
 const snsClient = new SNSClient(config);
 const logsClient = new CloudWatchLogsClient(config);
+const lambdaClient = new LambdaClient(config);
 
 const logDestinationLambdaArn = process.env.LOG_DESTINATION_FUNCTION_ARN;
+const logDestinationLambdaName = process.env.LOG_DESTINATION_FUNCTION_NAME;
 
 const createSuccessLogGroup = async (
   logGroupName,
   destinationArn,
-  topicName
+  topicName,
+  accountId
 ) => {
   const input = {
     logGroupName,
   };
+
   const command = new CreateLogGroupCommand(input);
   await logsClient.send(command);
+
+  const addPermissionInput = {
+    Action: "lambda:InvokeFunction",
+    FunctionName: logDestinationLambdaName,
+    Principal: "logs.amazonaws.com",
+    SourceArn: `arn:aws:logs:${config.region}:${accountId}:log-group:${logGroupName}:*`,
+    StatementId: `${topicName}LogLambdaTriggerSuccess`,
+  };
+
+  const addPermissionCommand = new AddPermissionCommand(addPermissionInput);
+  await lambdaClient.send(addPermissionCommand);
 
   const inputSubFilter = {
     logGroupName,
@@ -32,28 +51,41 @@ const createSuccessLogGroup = async (
     destinationArn,
   };
   const commandSubFilter = new PutSubscriptionFilterCommand(inputSubFilter);
-  await client.send(commandSubFilter);
+  await logsClient.send(commandSubFilter);
 };
 
 const createFailureLogGroup = async (
   logGroupName,
   destinationArn,
-  topicName
+  topicName,
+  accountId
 ) => {
   const input = {
     logGroupName,
   };
+
   const command = new CreateLogGroupCommand(input);
   await logsClient.send(command);
 
+  const addPermissionInput = {
+    Action: "lambda:InvokeFunction",
+    FunctionName: logDestinationLambdaName,
+    Principal: "logs.amazonaws.com",
+    SourceArn: `arn:aws:logs:${config.region}:${accountId}:log-group:${logGroupName}:*`,
+    StatementId: `${topicName}LogLambdaTriggerFailure`,
+  };
+
+  const addPermissionCommand = new AddPermissionCommand(addPermissionInput);
+  await lambdaClient.send(addPermissionCommand);
+
   const inputSubFilter = {
     logGroupName,
-    filterName: `${topicName}SuccessLogGroupTrigger`,
+    filterName: `${topicName}FailureLogGroupTrigger`,
     filterPattern: "",
     destinationArn,
   };
   const commandSubFilter = new PutSubscriptionFilterCommand(inputSubFilter);
-  await client.send(commandSubFilter);
+  await logsClient.send(commandSubFilter);
 };
 
 const createSNSTopic = async (topicName, accountId) => {
@@ -67,7 +99,7 @@ const createSNSTopic = async (topicName, accountId) => {
       HTTPFailureFeedbackRoleArn: failureRoleArn,
       DeliveryPolicy: JSON.stringify({
         http: {
-          healthyRetryPolicy: {
+          defaultHealthyRetryPolicy: {
             minDelayTarget: 1,
             maxDelayTarget: 60,
             numRetries: 50,
@@ -76,9 +108,7 @@ const createSNSTopic = async (topicName, accountId) => {
             numMaxDelayRetries: 35,
             backoffFunction: "exponential",
           },
-          throttlePolicy: {
-            maxReceivesPerSecond: 10,
-          },
+          disableSubscriptionOverrides: true,
         },
       }),
     },
@@ -98,12 +128,14 @@ const finalizeSNSTopic = async (serviceId, eventTypeName, accountId) => {
   await createSuccessLogGroup(
     successLogGroupName,
     logDestinationLambdaArn,
-    topicName
+    topicName,
+    accountId
   );
   await createFailureLogGroup(
     failureLogGroupName,
     logDestinationLambdaArn,
-    topicName
+    topicName,
+    accountId
   );
 
   return snsTopic;
