@@ -1,45 +1,44 @@
-const { pgPool } = require("./config");
+const { createClient } = require("/opt");
 const { queries } = require("./queries");
 
+const isValidUUID = (uuid) => {
+  const uuidRegex =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+  return uuidRegex.test(uuid);
+};
+
 const getService = async (serviceId) => {
-  const poolClient = await pgPool.connect();
-  const service = await poolClient.query(queries.CREATE_EVENT_TYPE, [
-    serviceId,
-  ]);
-  await pgPool.end();
+  const poolClient = await createClient();
+  const service = await poolClient.query(queries.GET_SERVICE, [serviceId]);
   return service;
 };
 
 const createUser = async (name, serviceId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
   const user = await poolClient.query(queries.CREATE_USER, [name, serviceId]);
-  await pgPool.end();
   return user;
 };
 
 const updateUser = async (userId, name) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
   const user = await poolClient.query(queries.UPDATE_USER, [name, userId]);
-  await pgPool.end();
   return user;
 };
 
 const getUser = async (userId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
   const user = await poolClient.query(queries.GET_USER, [userId]);
-  await pgPool.end();
   return user;
 };
 
 const listUsers = async (serviceId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
   const user = await poolClient.query(queries.LIST_USERS, [serviceId]);
-  await pgPool.end();
   return user;
 };
 
 const deleteUser = async (userId) => {
-  const poolClient = await pgPool.connect();
+  const poolClient = await createClient();
 
   const deleteSubscriptions = async () => {
     const subscriptions = await poolClient.query(queries.DELETE_SUBSCRIPTIONS, [
@@ -72,8 +71,6 @@ const deleteUser = async (userId) => {
   await deleteEvents();
 
   const user = await deleteUser();
-  await pgPool.end();
-
   return user;
 };
 
@@ -84,4 +81,5 @@ module.exports = {
   createUser,
   listUsers,
   deleteUser,
+  isValidUUID,
 };
