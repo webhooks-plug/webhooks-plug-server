@@ -7,19 +7,27 @@ const {
   getUser,
   updateUser,
   deleteUser,
+  isValidUUID,
 } = require("./utils");
 
 const handler = async (event) => {
   const httpMethod = event.httpMethod;
   const body = JSON.parse(event.body);
   const params = event.pathParameters;
-  const userId = params.user_id;
+  const userId = params?.user_id;
 
   try {
     if (userId) {
       switch (httpMethod) {
         case HTTP.PUT:
           const { name } = body;
+
+          if (!isValidUUID(userId)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
 
           const userToUpdate = await getUser(userId);
 
@@ -37,6 +45,13 @@ const handler = async (event) => {
             data: updatedUser.rows,
           });
         case HTTP.GET:
+          if (!isValidUUID(userId)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
           const retrievedUser = await getUser(userId);
 
           if (retrievedUser.rowCount === 0) {
@@ -51,6 +66,13 @@ const handler = async (event) => {
             data: retrievedUser.rows,
           });
         case HTTP.DELETE:
+          if (!isValidUUID(userId)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
           const userToDelete = await getUser(userId);
 
           if (userToDelete.rowCount === 0) {
@@ -72,9 +94,16 @@ const handler = async (event) => {
         case HTTP.POST:
           const { name, service_id } = body;
 
+          if (!isValidUUID(service_id)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
           if (!name || !service_id) {
             return AppResponse({
-              message: "Service ID and name of event type is required",
+              message: "Service ID and name of user is required",
               status: APIResponse.VALIDATION_FAILED,
             });
           }
@@ -88,7 +117,7 @@ const handler = async (event) => {
             });
           }
 
-          const user = await createUser();
+          const user = await createUser(name, service_id);
 
           return AppResponse({
             message: "User created successfully",
@@ -96,6 +125,13 @@ const handler = async (event) => {
           });
         case HTTP.GET:
           const { service_id: serviceId } = body;
+
+          if (!isValidUUID(serviceId)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
 
           const retreivedService = await getService(serviceId);
 
@@ -119,6 +155,7 @@ const handler = async (event) => {
       message: "No Valid Method Found",
     });
   } catch (err) {
+    console.log(err);
     return AppResponse({
       message: "Server error occured",
       status: APIResponse.SERVER_ERROR,
