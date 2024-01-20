@@ -46,7 +46,7 @@ const createSuccessLogGroup = async (
 
   const inputSubFilter = {
     logGroupName,
-    filterName: `${topicName}SuccessLogGroupTrigger`,
+    filterName: addPermissionInput.StatementId,
     filterPattern: "",
     destinationArn,
   };
@@ -80,7 +80,7 @@ const createFailureLogGroup = async (
 
   const inputSubFilter = {
     logGroupName,
-    filterName: `${topicName}FailureLogGroupTrigger`,
+    filterName: addPermissionInput.StatementId,
     filterPattern: "",
     destinationArn,
   };
@@ -97,6 +97,7 @@ const createSNSTopic = async (topicName, accountId) => {
     Attributes: {
       HTTPSuccessFeedbackRoleArn: successRoleArn,
       HTTPFailureFeedbackRoleArn: failureRoleArn,
+      HTTPSuccessFeedbackSampleRate: 100,
       DeliveryPolicy: JSON.stringify({
         http: {
           defaultHealthyRetryPolicy: {
@@ -121,8 +122,8 @@ const createSNSTopic = async (topicName, accountId) => {
 
 const finalizeSNSTopic = async (serviceId, eventTypeName, accountId) => {
   const topicName = `WebhooksPlug-${serviceId}-${eventTypeName}`;
-  const successLogGroupName = `/aws/sns/${topicName}`;
-  const failureLogGroupName = `/aws/sns/${topicName}/Failure`;
+  const successLogGroupName = `sns/${config.region}/${accountId}/${topicName}`;
+  const failureLogGroupName = `sns/${config.region}/${accountId}/${topicName}/Failure`;
   const snsTopic = await createSNSTopic(topicName, accountId);
 
   await createSuccessLogGroup(
