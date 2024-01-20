@@ -5,18 +5,27 @@ const {
   listServices,
   deleteService,
   getService,
+  isValidUUID,
+  getServiceByName,
 } = require("./utils");
 
 const handler = async (event) => {
   const httpMethod = event.httpMethod;
   const body = JSON.parse(event.body);
   const params = event.pathParameters;
-  const serviceId = params.service_id;
+  const serviceId = params?.service_id;
 
   try {
     if (serviceId) {
       switch (httpMethod) {
         case HTTP.GET:
+          if (!isValidUUID(serviceId)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
           const retreivedService = await getService(serviceId);
 
           if (retreivedService.rowCount === 0) {
@@ -32,6 +41,13 @@ const handler = async (event) => {
             data: retreivedService.rows,
           });
         case HTTP.DELETE:
+          if (!isValidUUID(serviceId)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
           const serviceToDelete = await getService(serviceId);
 
           if (serviceToDelete.rowCount === 0) {
@@ -53,6 +69,7 @@ const handler = async (event) => {
       switch (httpMethod) {
         case HTTP.GET:
           const services = await listServices();
+
           return AppResponse({
             message: "Services retrieved successfully",
             data: services.rows,
@@ -63,6 +80,15 @@ const handler = async (event) => {
           if (!name) {
             return AppResponse({
               message: "Name of service is required",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
+          const serviceToValidate = await getServiceByName(name);
+
+          if (serviceToValidate.rowCount > 0) {
+            return AppResponse({
+              message: "A service with that name already exists",
               status: APIResponse.VALIDATION_FAILED,
             });
           }
@@ -80,6 +106,7 @@ const handler = async (event) => {
       message: "No Valid Method Found",
     });
   } catch (err) {
+    console.log(err);
     return AppResponse({
       message: "Server error occured",
       status: APIResponse.SERVER_ERROR,
