@@ -49,12 +49,14 @@ create table if not exists subscriptions (
     id uuid default uuid_generate_v4(),
     event_type_id uuid not null,
     endpoint_id uuid not null,
+    user_id uuid not null,
     subscription_arn text not null unique,
     created_on timestamp not null default now(),
     deleted_on timestamp not null default to_timestamp(0),
     primary key (id),
     foreign key (event_type_id) references event_types(id),
     foreign key (endpoint_id) references endpoints(id),
+    foreign key (user_id) references users(id),
     unique (endpoint_id, event_type_id, deleted_on)
 );
 
@@ -80,8 +82,10 @@ create table if not exists messages (
     user_id uuid not null,
     endpoint text not null,
     event_id uuid not null,
+    sns_message_id uuid not null,
     created_on timestamp not null default now(),
     deleted_on timestamp not null default to_timestamp(0),
     primary key (id),
-    foreign key (user_id) references users(id) foreign key (event_id) references events(id)
+    foreign key (user_id) references users(id),
+    foreign key (event_id) references events(id)
 );
