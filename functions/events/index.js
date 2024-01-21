@@ -36,6 +36,7 @@ const handler = async (event) => {
           });
         }
 
+        // Check if there is a subscription for that event type and user id
         const event = await publishEvent(eventType.rows[0], message, user_id);
 
         return AppResponse({
