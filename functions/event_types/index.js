@@ -16,6 +16,8 @@ const handler = async (event) => {
   const httpMethod = event.httpMethod;
   const body = JSON.parse(event.body);
   const params = event.pathParameters;
+  const queryParams = event.queryStringParameters;
+  const serviceId = queryParams?.service_id;
   const eventTypeId = params?.event_type_id;
   const accountId = event.requestContext.accountId;
 
@@ -103,8 +105,6 @@ const handler = async (event) => {
     } else {
       switch (httpMethod) {
         case HTTP.GET:
-          const { service_id: serviceId } = body;
-
           if (!serviceId) {
             return AppResponse({
               message: "Service ID is required",
