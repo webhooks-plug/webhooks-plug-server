@@ -22,10 +22,10 @@ const publishSNS = async (topicArn, message, userId, eventId) => {
         DataType: "String",
         StringValue: userId,
       },
-      //   "AWS.SNS.MessageId": {
-      //     DataType: "String",
-      //     StringValue: eventId,
-      //   },
+      messageId: {
+        DataType: "String",
+        StringValue: eventId,
+      },
     },
   };
 
@@ -53,13 +53,14 @@ const createEvent = async (payload, userId, eventTypeId, eventUniqueKey) => {
   return eventType.rows;
 };
 
-const createMessage = async (status, userId, eventId, endpoint) => {
+const createMessage = async (status, userId, eventId, endpoint, messageId) => {
   const poolClient = await createClient();
   const message = await poolClient.query(queries.CREATE_MESSAGE, [
     status,
     userId,
     eventId,
     endpoint,
+    messageId,
   ]);
   return message.rows;
 };
@@ -85,16 +86,6 @@ const publishEvent = async (eventType, message, userId) => {
 
   const eventId = event[0].id;
 
-  const subscriptions = await getSubscriptions(eventType.id, userId);
-
-  const messages = subscriptions.map((sub) => {
-    const endpoint = sub.url;
-    const message = createMessage(0, userId, eventId, endpoint);
-    return message;
-  });
-
-  await Promise.all(messages);
-
   const stringifiedMessage = JSON.stringify({
     messageMeta: {
       eventId,
@@ -103,7 +94,22 @@ const publishEvent = async (eventType, message, userId) => {
     message,
   });
 
-  await publishSNS(eventType.topic_arn, stringifiedMessage, userId, eventId);
+  const messageId = await publishSNS(
+    eventType.topic_arn,
+    stringifiedMessage,
+    userId,
+    eventId
+  );
+
+  const subscriptions = await getSubscriptions(eventType.id, userId);
+
+  const messages = subscriptions.map((sub) => {
+    const endpoint = sub.url;
+    const message = createMessage(0, userId, eventId, endpoint, messageId);
+    return message;
+  });
+
+  await Promise.all(messages);
 
   return event;
 };
