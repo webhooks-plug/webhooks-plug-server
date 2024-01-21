@@ -6,18 +6,29 @@ const {
   getEventType,
   getSubscription,
   deleteSubscription,
+  getEventTypeByName,
+  isValidUUID,
 } = require("./utils");
 
 const handler = async (event) => {
   const httpMethod = event.httpMethod;
   const body = JSON.parse(event.body);
   const params = event.pathParameters;
-  const subscriptionId = params.subscription_id;
+  const subscriptionId = params?.subscription_id;
+  const queryParams = event.queryStringParameters;
+  const eventTypeId = queryParams?.event_type_id;
 
   try {
     if (subscriptionId) {
       switch (httpMethod) {
         case HTTP.GET:
+          if (!isValidUUID(subscriptionId)) {
+            return AppResponse({
+              message: "Subscription ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
           const subscription = await getSubscription(subscriptionId);
 
           if (subscription.rowCount === 0) {
@@ -32,6 +43,13 @@ const handler = async (event) => {
             data: subscription.rows,
           });
         case HTTP.DELETE:
+          if (!isValidUUID(subscriptionId)) {
+            return AppResponse({
+              message: "Subscription ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
           const subscriptionToDelete = await getSubscription(subscriptionId);
 
           if (subscriptionToDelete.rowCount === 0) {
@@ -50,24 +68,52 @@ const handler = async (event) => {
       }
     } else {
       switch (httpMethod) {
+        // Check if sub exists for event type
         case HTTP.POST:
-          const { user_id, url, event_type_id } = body;
+          const { user_id, url, event_type_name } = body;
 
-          if (!user_id || !url || !event_type_id) {
+          if (!isValidUUID(user_id)) {
+            return AppResponse({
+              message: "User ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
+          if (!user_id || !url || !event_type_name) {
             return AppResponse({
               message: "User ID, url and event type ID is required",
               status: APIResponse.VALIDATION_FAILED,
             });
           }
 
-          const subscription = createSubscription(user_id, url, event_type_id);
+          const eventType = await getEventTypeByName(event_type_name);
+
+          if (eventType.rowCount === 0) {
+            return AppResponse({
+              message: "No event type exists with that name",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
+          const subscription = await createSubscription(
+            user_id,
+            url,
+            eventType.rows[0]
+          );
+
+          const justCreatedSub = await getSubscription(subscription[0].id);
 
           return AppResponse({
             message: "Subscription created successfully",
-            data: subscription,
+            data: justCreatedSub.rows,
           });
         case HTTP.GET:
-          const { event_type_id: eventTypeId } = body;
+          if (!isValidUUID(eventTypeId)) {
+            return AppResponse({
+              message: "Event type ID is not a valid uuid",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
 
           const retrievedEventType = await getEventType(eventTypeId);
 
@@ -91,6 +137,7 @@ const handler = async (event) => {
       message: "No Valid Method Found",
     });
   } catch (err) {
+    console.log(err);
     return AppResponse({
       message: "Server error occured",
       status: APIResponse.SERVER_ERROR,
