@@ -24,11 +24,21 @@ const validateUrl = (url) => {
   return urlRegex.test(url);
 };
 
-const createSNSSubscription = async (url, topicArn) => {
+const createSNSSubscription = async (url, topicArn, userId) => {
+  const FilterPolicy = JSON.stringify({
+    userId: [userId],
+  });
+
+  const snsAttributes = {
+    RawMessageDelivery: "true",
+    FilterPolicy,
+  };
+
   const params = {
     Protocol: isHttps(url) ? "https" : "http",
     TopicArn: topicArn,
     Endpoint: url,
+    Attributes: snsAttributes,
     ReturnSubscriptionArn: true,
   };
 
@@ -54,7 +64,6 @@ const getEventTypeByName = async (eventTypeName) => {
 };
 
 const createSubscription = async (userId, url, eventType) => {
-  console.log(eventType);
   const poolClient = await createClient();
 
   const createEndpoint = async () => {
@@ -74,18 +83,29 @@ const createSubscription = async (userId, url, eventType) => {
   const snsTopicArn = eventType.topic_arn;
 
   if (validateUrl(url)) {
-    const subscriptionArn = await createSNSSubscription(url, snsTopicArn);
+    const subscriptionArn = await createSNSSubscription(
+      url,
+      snsTopicArn,
+      userId
+    );
 
     const subscription = await poolClient.query(queries.CREATE_SUBSCRIPTION, [
       eventType.id,
       endpointId,
       subscriptionArn,
+      userId,
     ]);
 
     return subscription.rows;
   }
 
   return [];
+};
+
+const getUser = async (userId) => {
+  const poolClient = await createClient();
+  const user = await poolClient.query(queries.GET_USER, [userId]);
+  return user;
 };
 
 const getSubscription = async (subscriptionId) => {
@@ -98,10 +118,18 @@ const getSubscription = async (subscriptionId) => {
 
 const getSubscriptions = async (eventTypeId) => {
   const poolClient = await createClient();
-  const subscription = await poolClient.query(queries.GET_SUBSCRIPTIONS, [
+  const subscriptions = await poolClient.query(queries.GET_SUBSCRIPTIONS, [
     eventTypeId,
   ]);
-  return subscription;
+  return subscriptions;
+};
+
+const getSubscriptionsForUser = async (userId) => {
+  const poolClient = await createClient();
+  const subscriptions = await poolClient.query(queries.GET_SUBSCRIPTIONS_USER, [
+    userId,
+  ]);
+  return subscriptions;
 };
 
 const deleteSubscription = async (subscriptionId) => {
@@ -135,4 +163,6 @@ module.exports = {
   createSubscription,
   getEventTypeByName,
   isValidUUID,
+  getUser,
+  getSubscriptionsForUser,
 };
