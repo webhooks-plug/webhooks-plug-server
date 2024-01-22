@@ -14,6 +14,8 @@ const handler = async (event) => {
   const httpMethod = event.httpMethod;
   const body = JSON.parse(event.body);
   const params = event.pathParameters;
+  const queryParams = event.queryStringParameters;
+  const serviceId = queryParams?.service_id;
   const userId = params?.user_id;
 
   try {
@@ -124,7 +126,12 @@ const handler = async (event) => {
             data: user.rows,
           });
         case HTTP.GET:
-          const { service_id: serviceId } = body;
+          if (!serviceId) {
+            return AppResponse({
+              message: "Service ID is required",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
 
           if (!isValidUUID(serviceId)) {
             return AppResponse({
