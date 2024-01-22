@@ -10,24 +10,28 @@ const isValidUUID = (uuid) => {
 const getService = async (serviceId) => {
   const poolClient = await createClient();
   const service = await poolClient.query(queries.GET_SERVICE, [serviceId]);
+  poolClient.release();
   return service;
 };
 
 const createUser = async (name, serviceId) => {
   const poolClient = await createClient();
   const user = await poolClient.query(queries.CREATE_USER, [name, serviceId]);
+  poolClient.release();
   return user;
 };
 
 const updateUser = async (userId, name) => {
   const poolClient = await createClient();
   const user = await poolClient.query(queries.UPDATE_USER, [name, userId]);
+  poolClient.release();
   return user;
 };
 
 const getUser = async (userId) => {
   const poolClient = await createClient();
   const user = await poolClient.query(queries.GET_USER, [userId]);
+  poolClient.release();
   return user;
 };
 
@@ -71,6 +75,7 @@ const deleteUser = async (userId) => {
   await deleteEvents();
 
   const user = await deleteUser();
+  poolClient.release();
   return user;
 };
 
