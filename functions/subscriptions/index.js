@@ -8,6 +8,8 @@ const {
   deleteSubscription,
   getEventTypeByName,
   isValidUUID,
+  getUser,
+  getSubscriptionsForUser,
 } = require("./utils");
 
 const handler = async (event) => {
@@ -17,6 +19,7 @@ const handler = async (event) => {
   const subscriptionId = params?.subscription_id;
   const queryParams = event.queryStringParameters;
   const eventTypeId = queryParams?.event_type_id;
+  const userId = queryParams?.user_id;
 
   try {
     if (subscriptionId) {
@@ -108,28 +111,53 @@ const handler = async (event) => {
             data: justCreatedSub.rows,
           });
         case HTTP.GET:
-          if (!isValidUUID(eventTypeId)) {
+          if (userId) {
+            if (!isValidUUID(userId)) {
+              return AppResponse({
+                message: "User ID is not a valid uuid",
+                status: APIResponse.VALIDATION_FAILED,
+              });
+            }
+
+            const retrievedUser = await getUser(userId);
+
+            if (retrievedUser.rowCount === 0) {
+              return AppResponse({
+                message: "User ID is invalid",
+                status: APIResponse.VALIDATION_FAILED,
+              });
+            }
+
+            const subscriptions = await getSubscriptionsForUser(userId);
+
             return AppResponse({
-              message: "Event type ID is not a valid uuid",
-              status: APIResponse.VALIDATION_FAILED,
+              message: "Subscriptions retreived successfully",
+              data: subscriptions.rows,
+            });
+          } else if (eventTypeId) {
+            if (!isValidUUID(eventTypeId)) {
+              return AppResponse({
+                message: "Event type ID is not a valid uuid",
+                status: APIResponse.VALIDATION_FAILED,
+              });
+            }
+
+            const retrievedEventType = await getEventType(eventTypeId);
+
+            if (retrievedEventType.rowCount === 0) {
+              return AppResponse({
+                message: "Event type ID is invalid",
+                status: APIResponse.VALIDATION_FAILED,
+              });
+            }
+
+            const subscriptions = await getSubscriptions(eventTypeId);
+
+            return AppResponse({
+              message: "Subscriptions retreived successfully",
+              data: subscriptions.rows,
             });
           }
-
-          const retrievedEventType = await getEventType(eventTypeId);
-
-          if (retrievedEventType.rowCount === 0) {
-            return AppResponse({
-              message: "Event type ID is invalid",
-              status: APIResponse.VALIDATION_FAILED,
-            });
-          }
-
-          const subscriptions = await getSubscriptions(eventTypeId);
-
-          return AppResponse({
-            message: "Subscriptions retreived successfully",
-            data: subscriptions.rows,
-          });
       }
     }
 
