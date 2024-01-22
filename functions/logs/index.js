@@ -16,19 +16,18 @@ const updateMessage = async (deliveredAt, status, endpoint, snsMessageId) => {
 };
 
 const handler = async (event) => {
-  console.log(event);
   try {
     const compressedData = event.awslogs.data;
     const decodedData = base64.toByteArray(compressedData);
     const promisifiedData = promisify(zlib.gunzip);
     const decompressedBuffer = await promisifiedData(decodedData);
-    const decompressedText = decompressedBuffer.toString("utf-8");
+    const decompressedText = JSON.parse(decompressedBuffer.toString("utf-8"));
 
     const logEvents = decompressedText.logEvents || [];
 
     if (logEvents.length > 0) {
       const messageUpdates = logEvents.map((event) => {
-        const message = event.message;
+        const message = JSON.parse(event.message);
         const snsMessageId = message.notification.messageId;
         const timestamp = message.notification.timestamp;
         const endpoint = message.delivery.destination;
