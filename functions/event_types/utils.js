@@ -10,6 +10,7 @@ const isValidUUID = (uuid) => {
 const getService = async (serviceId) => {
   const poolClient = await createClient();
   const service = await poolClient.query(queries.GET_SERVICE, [serviceId]);
+  poolClient.release();
   return service;
 };
 
@@ -20,6 +21,7 @@ const createEventType = async (serviceId, eventName, topicArn) => {
     serviceId,
     topicArn,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -29,6 +31,7 @@ const updateEventType = async (eventTypeId, eventName) => {
     eventName,
     eventTypeId,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -47,6 +50,7 @@ const deleteEventType = async (eventTypeId) => {
   const eventType = await poolClient.query(queries.DELETE_EVENT_TYPE, [
     eventTypeId,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -55,6 +59,7 @@ const getEventType = async (eventTypeId) => {
   const eventType = await poolClient.query(queries.GET_EVENT_TYPE, [
     eventTypeId,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -64,6 +69,7 @@ const getEventTypeByName = async (name, serviceId) => {
     name,
     serviceId,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -72,6 +78,7 @@ const getEventTypes = async (serviceId) => {
   const eventType = await poolClient.query(queries.GET_EVENT_TYPES, [
     serviceId,
   ]);
+  poolClient.release();
   return eventType;
 };
 
