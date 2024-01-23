@@ -39,6 +39,7 @@ const getEventType = async (eventTypeName) => {
   const eventType = await poolClient.query(queries.GET_EVENT_TYPE, [
     eventTypeName,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -50,6 +51,7 @@ const createEvent = async (payload, userId, eventTypeId, eventUniqueKey) => {
     eventTypeId,
     eventUniqueKey,
   ]);
+  poolClient.release();
   return eventType.rows;
 };
 
@@ -62,6 +64,7 @@ const createMessage = async (status, userId, eventId, endpoint, messageId) => {
     endpoint,
     messageId,
   ]);
+  poolClient.release();
   return message.rows;
 };
 
@@ -71,6 +74,7 @@ const getSubscriptions = async (eventTypeId, userId) => {
     eventTypeId,
     userId,
   ]);
+  poolClient.release();
   return subscriptions.rows;
 };
 
