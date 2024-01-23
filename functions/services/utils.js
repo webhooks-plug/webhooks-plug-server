@@ -10,24 +10,35 @@ const isValidUUID = (uuid) => {
 const createService = async (name) => {
   const poolClient = await createClient();
   const service = await poolClient.query(queries.CREATE_SERVICE, [name]);
+  poolClient.release();
   return service;
 };
 
 const getServiceByName = async (name) => {
   const poolClient = await createClient();
   const service = await poolClient.query(queries.GET_SERVICE_NAME, [name]);
+  poolClient.release();
   return service;
+};
+
+const getUsersCount = async (service_id) => {
+  const poolClient = await createClient();
+  const usersCount = await poolClient.query(queries.USERS_COUNT, [service_id]);
+  poolClient.release();
+  return usersCount;
 };
 
 const listServices = async () => {
   const poolClient = await createClient();
   const services = await poolClient.query(queries.LIST_SERVICES);
+  poolClient.release();
   return services;
 };
 
 const getService = async (serviceId) => {
   const poolClient = await createClient();
   const service = await poolClient.query(queries.GET_SERVICE, [serviceId]);
+  poolClient.release();
   return service;
 };
 
@@ -70,7 +81,9 @@ const deleteService = async (serviceId) => {
   await deleteEvents();
   await deleteEventTypes();
   await deleteUsers();
-  return await deleteService();
+  const service = await deleteService();
+  poolClient.release();
+  return service;
 };
 
 module.exports = {
@@ -79,5 +92,6 @@ module.exports = {
   getService,
   deleteService,
   createService,
+  getUsersCount,
   getServiceByName,
 };
