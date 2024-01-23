@@ -7,6 +7,7 @@ const {
   getService,
   isValidUUID,
   getServiceByName,
+  getUsersCount,
 } = require("./utils");
 
 const handler = async (event) => {
@@ -14,11 +15,23 @@ const handler = async (event) => {
   const body = JSON.parse(event.body);
   const params = event.pathParameters;
   const serviceId = params?.service_id;
+  const queryParams = event.queryStringParameters;
+  const count = queryParams?.count;
 
   try {
     if (serviceId) {
       switch (httpMethod) {
         case HTTP.GET:
+          if (count) {
+            const usersCount = await getUsersCount(serviceId);
+
+            return AppResponse({
+              message: "Users count retreived successfully",
+              status: APIResponse.OK,
+              data: usersCount.rows,
+            });
+          }
+
           if (!isValidUUID(serviceId)) {
             return AppResponse({
               message: "ID is not a valid uuid",
