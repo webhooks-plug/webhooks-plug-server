@@ -12,6 +12,7 @@ const updateMessage = async (deliveredAt, status, endpoint, snsMessageId) => {
     endpoint,
     snsMessageId,
   ]);
+  client.release();
   return message;
 };
 
