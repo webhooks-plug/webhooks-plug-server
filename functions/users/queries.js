@@ -4,7 +4,7 @@ const queries = {
   CREATE_USER: `insert into users (name, service_id) values ($1, $2) returning id, name, service_id, created_on`,
   GET_SERVICE: `select id, name from services where deleted_on = '${zeroTimestamp}' and id = $1`,
   GET_USER: `select id, name, service_id, created_on from users where deleted_on = '${zeroTimestamp}' and id = $1`,
-  LIST_USERS: `select users.id, users.name, users.created_on from users join services on services.id = users.service_id where services.id = $1 and users.deleted_on = '${zeroTimestamp}'`,
+  LIST_USERS: `select users.id, users.name, users.created_on from users join services on services.id = users.service_id where services.id = $1 and users.deleted_on = '${zeroTimestamp}' order by users.created_on desc`,
   DELETE_SUBSCRIPTIONS: `update subscriptions set deleted_on = now() from endpoints as en where subscriptions.endpoint_id = en.id and en.user_id = $1 and subscriptions.deleted_on = '${zeroTimestamp}';`,
   DELETE_ENDPOINTS: `update endpoints set deleted_on = now() where endpoints.user_id = $1 and endpoints.deleted_on = '${zeroTimestamp}'`,
   DELETE_MESSAGES: `update messages set deleted_on = now() where messages.user_id = $1 and messages.deleted_on = '${zeroTimestamp}'`,
