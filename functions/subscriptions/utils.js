@@ -52,6 +52,7 @@ const getEventType = async (eventTypeId) => {
   const eventType = await poolClient.query(queries.GET_EVENT_TYPE, [
     eventTypeId,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -60,6 +61,7 @@ const getEventTypeByName = async (eventTypeName) => {
   const eventType = await poolClient.query(queries.GET_EVENT_TYPE_NAME, [
     eventTypeName,
   ]);
+  poolClient.release();
   return eventType;
 };
 
@@ -96,6 +98,8 @@ const createSubscription = async (userId, url, eventType) => {
       userId,
     ]);
 
+    poolClient.release();
+
     return subscription.rows;
   }
 
@@ -105,6 +109,7 @@ const createSubscription = async (userId, url, eventType) => {
 const getUser = async (userId) => {
   const poolClient = await createClient();
   const user = await poolClient.query(queries.GET_USER, [userId]);
+  poolClient.release();
   return user;
 };
 
@@ -113,6 +118,7 @@ const getSubscription = async (subscriptionId) => {
   const subscription = await poolClient.query(queries.GET_SUBSCRIPTION, [
     subscriptionId,
   ]);
+  poolClient.release();
   return subscription;
 };
 
@@ -121,6 +127,7 @@ const getSubscriptions = async (eventTypeId) => {
   const subscriptions = await poolClient.query(queries.GET_SUBSCRIPTIONS, [
     eventTypeId,
   ]);
+  poolClient.release();
   return subscriptions;
 };
 
@@ -129,6 +136,7 @@ const getSubscriptionsForUser = async (userId) => {
   const subscriptions = await poolClient.query(queries.GET_SUBSCRIPTIONS_USER, [
     userId,
   ]);
+  poolClient.release();
   return subscriptions;
 };
 
@@ -152,6 +160,7 @@ const deleteSubscription = async (subscriptionId) => {
   await deleteEndpoints();
   const subscription = await deleteSubscription();
 
+  poolClient.release();
   return subscription;
 };
 
