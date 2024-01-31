@@ -88,7 +88,7 @@ const handler = async (event) => {
             data: services.rows,
           });
         case HTTP.POST:
-          const { name } = body;
+          const name = body?.name;
 
           if (!name) {
             return AppResponse({

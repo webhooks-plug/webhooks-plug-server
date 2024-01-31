@@ -70,7 +70,7 @@ const handler = async (event) => {
             data: deletedEventType.rows,
           });
         case HTTP.PUT:
-          const { name } = body;
+          const name = body?.name;
 
           if (!name) {
             return AppResponse({
@@ -135,7 +135,8 @@ const handler = async (event) => {
             data: eventTypes.rows,
           });
         case HTTP.POST:
-          const { name, service_id } = body;
+          const name = body?.name;
+          const service_id = body?.service_id;
 
           if (!name || !service_id) {
             return AppResponse({

@@ -22,7 +22,7 @@ const handler = async (event) => {
     if (userId) {
       switch (httpMethod) {
         case HTTP.PUT:
-          const { name } = body;
+          const name = body?.name;
 
           if (!isValidUUID(userId)) {
             return AppResponse({
@@ -94,18 +94,19 @@ const handler = async (event) => {
     } else {
       switch (httpMethod) {
         case HTTP.POST:
-          const { name, service_id } = body;
-
-          if (!isValidUUID(service_id)) {
-            return AppResponse({
-              message: "ID is not a valid uuid",
-              status: APIResponse.VALIDATION_FAILED,
-            });
-          }
+          const name = body?.name;
+          const service_id = body?.service_id;
 
           if (!name || !service_id) {
             return AppResponse({
               message: "Service ID and name of user is required",
+              status: APIResponse.VALIDATION_FAILED,
+            });
+          }
+
+          if (!isValidUUID(service_id)) {
+            return AppResponse({
+              message: "ID is not a valid uuid",
               status: APIResponse.VALIDATION_FAILED,
             });
           }

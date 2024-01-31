@@ -73,7 +73,9 @@ const handler = async (event) => {
       switch (httpMethod) {
         // Check if sub exists for event type
         case HTTP.POST:
-          const { user_id, url, event_type_name } = body;
+          const user_id = body?.user_id;
+          const url = body?.url;
+          const event_type_name = body?.event_type_name;
 
           if (!isValidUUID(user_id)) {
             return AppResponse({

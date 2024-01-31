@@ -11,7 +11,9 @@ const handler = async (event) => {
   try {
     switch (httpMethod) {
       case HTTP.POST:
-        const { event_type_name, message, user_id } = body;
+        const event_type_name = body?.event_type_name;
+        const message = body?.message;
+        const user_id = body?.user_id;
 
         if (!event_type_name || !message || !user_id) {
           return AppResponse({
